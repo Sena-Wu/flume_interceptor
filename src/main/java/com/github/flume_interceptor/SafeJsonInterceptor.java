@@ -32,25 +32,20 @@ public class SafeJsonInterceptor implements Interceptor {
             if (jsonObject != null) {
                 Map<String, String> headers = event.getHeaders();
                 String ts = jsonObject.getString("timestamp");
-                if(ts.length() == 10){
-                    ts = ts + "000";
-                }
                 headers.put("timestamp", ts);
-            }
 
-            // flat extra字段
-            JSONObject extra = JSONObject.parseObject((String) jsonObject.get("extra"));
-            jsonObject.remove("extra");
-            Iterator<String> iterator = extra.keySet().iterator();
-            while (iterator.hasNext()){
-                jsonObject.put(iterator.next(), extra.get(iterator.next()));
+                JSONObject extra = jsonObject.getJSONObject("extra");
+                if(extra != null){
+                    jsonObject.remove("extra");
+                    jsonObject.putAll(extra);
+                }
             }
 
             event.setBody(jsonObject.toJSONString().getBytes(StandardCharsets.UTF_8));
             return event;
         }catch (Exception e){
             interceptCount.increment();
-            logger.error("can not parse json: {}", body);
+            logger.info(e.getMessage());
             logger.debug("interceptCount: {}", interceptCount.sum());
         }
         return null;
@@ -74,7 +69,7 @@ public class SafeJsonInterceptor implements Interceptor {
 
         @Override
         public Interceptor build() {
-            return new JsonStrInterceptor();
+            return new SafeJsonInterceptor();
         }
 
         @Override
